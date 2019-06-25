@@ -10,6 +10,8 @@
 #include <time.h>
 #include "E3DC_CONF.h"
 
+#define VERSION "2019.6.18.01"
+
 #define AES_KEY_SIZE        32
 #define AES_BLOCK_SIZE      32
 
@@ -44,7 +46,7 @@ static float fPower_Grid;
 static float fAvPower_Grid,fAvPower_Grid3600,fAvPower_Grid600,fAvPower_Grid60; // Durchschnitt ungewichtete Netzleistung der letzten 10sec
 static int iAvPower_GridCount = 0;
 static float fPower_WB;
-static int32_t iPower_PV;
+static int32_t iPower_PV, iPower_PV_E3DC;
 static int32_t iPower_Bat;
 static uint8_t iPhases_WB;
 static uint8_t iCyc_WB;
@@ -209,7 +211,7 @@ static time_t tLadezeit_alt,tE3DC_alt;
 static time_t t;
 int LoadDataProcess(SRscpFrameBuffer * frameBuffer) {
 //    const int cLadezeitende1 = 12.5*3600;  // Sommerzeit -2h da GMT = MEZ - 2
-
+    printf("\n");
     tm *ts;
     ts = gmtime(&tE3DC);
     if (tE3DC % (24*3600)<t) {fSavedyesderday=fSavedtoday; fSavedtoday=0;}
@@ -332,13 +334,26 @@ int LoadDataProcess(SRscpFrameBuffer * frameBuffer) {
 
 
           iPower = (-iPower_Bat + fPower_Grid - e3dc_config.einspeiselimit*-1000)*-1;
+            // die PV-leistung kann die WR-Leistung überschreiten. Überschuss in den Speicher laden;
 
-            if (iPower > 0) fSavedtoday = fSavedtoday + iPower;
             
+<<<<<<< HEAD
           if (iPower < 100) {iPower = 0;}
           else
               if (iPower > e3dc_config.maximumLadeleistung) {iPower = e3dc_config.maximumLadeleistung;}
 
+=======
+            if ((iPower_PV_E3DC - e3dc_config.wrleistung) > iPower)
+            iPower = (iPower_PV_E3DC - e3dc_config.wrleistung);
+           
+            
+            
+            if (iPower < 50) {iPower = 0;}
+            else
+            if (iPower > e3dc_config.maximumLadeleistung) iPower = e3dc_config.maximumLadeleistung;
+            else if (iPower <100) iPower = 100;
+            fSavedtoday = fSavedtoday + iPower;
+>>>>>>> 8962f5708c45d88004fea662de7eae78ebffd079
 //          if (iPower+200 > fAvBatterie) fAvBatterie = iPower+200; // Überschussladen ohne Überhöhung wg. durchschnittl. Ladeleistung;
             if (iFc > iPower)
             {   iPower = iFc;
@@ -547,7 +562,7 @@ int WBProcess(SRscpFrameBuffer * frameBuffer) {
     }
         }
     printf("DyLadeende %0.01f ",iDyLadeende);
-    printf(" iWBStatus %i \n",iWBStatus);
+    printf(" iWBStatus %i",iWBStatus);
     if (iWBStatus > 1) iWBStatus--;
 return 0;
 }
@@ -710,7 +725,7 @@ if (e3dc_config.wallbox)
     protocol.createFrameAsBuffer(frameBuffer, rootValue.data, rootValue.length, true); // true to calculate CRC on for transfer
     // the root value object should be destroyed after the data is copied into the frameBuffer and is not needed anymore
     protocol.destroyValueData(rootValue);
-    printf("\nRequest cyclic example data done\n");
+    printf("\nRequest cyclic example data done \n");
 
     return 0;
 }
@@ -745,6 +760,7 @@ int handleResponseValue(RscpProtocol *protocol, SRscpValue *response)
         int32_t iPower = protocol->getValueAsInt32(response);
         printf("EMS PV %i", iPower);
         iPower_PV = iPower;
+        iPower_PV_E3DC = iPower;
         break;
     }
     case TAG_EMS_POWER_BAT: {    // response for TAG_EMS_REQ_POWER_BAT
@@ -1532,6 +1548,7 @@ int main(int argc, char *argv[])
     e3dc_config.obererLadekorridor = OBERERLADEKORRIDOR;
     e3dc_config.minimumLadeleistung = MINIMUMLADELEISTUNG;
     e3dc_config.maximumLadeleistung = MAXIMUMLADELEISTUNG;
+    e3dc_config.wrleistung = WRLEISTUNG;
     e3dc_config.speichergroesse = SPEICHERGROESSE;
     e3dc_config.winterminimum = WINTERMINIMUM;
     e3dc_config.sommermaximum = SOMMERMAXIMUM;
@@ -1586,6 +1603,8 @@ int main(int argc, char *argv[])
                     e3dc_config.minimumLadeleistung = atoi(value);
                 else if(strcmp(var, "maximumLadeleistung") == 0)
                     e3dc_config.maximumLadeleistung = atoi(value);
+                else if(strcmp(var, "wrleistung") == 0)
+                    e3dc_config.wrleistung = atoi(value);
                 else if(strcmp(var, "speichergroesse") == 0)
                     e3dc_config.speichergroesse = atof(value);
                 else if(strcmp(var, "winterminimum") == 0)
@@ -1618,6 +1637,9 @@ int main(int argc, char *argv[])
 
             }
         }
+//        printf("e3dc_user %s\n",e3dc_config.e3dc_user);
+//        printf("e3dc_password %s\n",e3dc_config.e3dc_password);
+//        printf("aes_password %s\n",e3dc_config.aes_password);
         fclose(fp);
     }
     static int iEC = 0;
@@ -1629,6 +1651,8 @@ int main(int argc, char *argv[])
         iEC++; // Schleifenzähler erhöhen
 
         // connect to server
+        printf("Program Start Version:%s\n",VERSION);
+
         printf("Connecting to server %s:%i\n", e3dc_config.server_ip, e3dc_config.server_port);
         iSocket = SocketConnect(e3dc_config.server_ip, e3dc_config.server_port);
         if(iSocket < 0) {

@@ -15,7 +15,7 @@
 #define CONF_FILE "e3dc.config.txt"
 #define CONF_PATH "/home/e3dc-control"
 
-#define WURZELZAEHLER 6;     // 0 = interner Zähler 6 = externer Zähler
+#define WURZELZAEHLER 0;     // 0 = interner Zähler 6 = externer Zähler
 
 #define LADESCHWELLE 50;     // bis zur dieser Schwelle wird geladen bevor die Regelung beginnt
 #define LADEENDE 80;         // Zielwert bis Ende Regelung, dannach wird Ladung auf 93% weiter geregelt und dann ab SOMMERLADEENDE freigegeben
@@ -23,6 +23,7 @@
 #define OBERERLADEKORRIDOR  1500 // oberere Ladeleistung liegen, jedoch
 #define MINIMUMLADELEISTUNG  500 // immer > MINIMUMLADELEISTUNG
 #define MAXIMUMLADELEISTUNG 3000 // maximale Ladeleistung
+#define WRLEISTUNG 12000 // maximale Ladeleistung
 
 #define SPEICHERGROESSE 13.8 // nutzbare Kapazität des S10 Speichers
 #define WINTERMINIMUM   11.5 // Uhrzeit (als Dezimalwert) bis zu dieser Uhrzeit wird das Laden überwacht
@@ -40,8 +41,8 @@ typedef struct {
     char aes_password[128];
     bool wallbox,ext1,ext2,ext3,debug,htsat,htsun;
     uint8_t wurzelzaehler,ladeschwelle, ladeende;
-    int32_t ht, untererLadekorridor, obererLadekorridor, minimumLadeleistung, maximumLadeleistung;
+    int32_t ht, untererLadekorridor, obererLadekorridor, minimumLadeleistung, maximumLadeleistung, wrleistung;
     float_t speichergroesse,winterminimum, sommermaximum,sommerladeende, einspeiselimit,
     hton, htoff, htsockel;
-    
+
 }e3dc_config_t;
